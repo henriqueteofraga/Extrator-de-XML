@@ -27,12 +27,53 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 app.UseCors("PermitirTudo");
 
-// 3. Mapeamento de Endpoints
+// 3. Mapeamento de Endpoints do Hub
 app.MapHub<ExtracaoHubOtimizado>("/extracaoHub");
 
+// Endpoint para Listar os Bancos Dinamicamente
+app.MapPost("/api/listar-bancos", async (ConexaoSqlRequest request) =>
+{
+    if (string.IsNullOrWhiteSpace(request.Server) || 
+        string.IsNullOrWhiteSpace(request.Usuario) || 
+        string.IsNullOrWhiteSpace(request.Senha))
+    {
+        return Results.BadRequest("Todos os campos de conexão são obrigatórios.");
+    }
+
+    var connectionStringMaster = $"Server={request.Server};Database=master;User ID={request.Usuario};Password={request.Senha};TrustServerCertificate=True;Timeout=10";
+    var bancos = new List<string>();
+
+    try
+    {
+        using (var connection = new SqlConnection(connectionStringMaster))
+        {
+            await connection.OpenAsync();
+            var query = "SELECT name FROM sys.databases WHERE name LIKE 'GestaoXML%' AND state = 0 ORDER BY name;";
+            
+            using (var command = new SqlCommand(query, connection))
+            {
+                using (var reader = await command.ExecuteReaderAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        bancos.Add(reader.GetString(0));
+                    }
+                }
+            }
+        }
+        return Results.Ok(bancos);
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem($"Erro ao conectar ao SQL Server: {ex.Message}");
+    }
+});
+
+// Endpoint Principal de Extração Otimizado e Dinâmico
 app.MapPost("/api/extrair", async ([FromBody] ExtrairRequestOtimizado request, IHubContext<ExtracaoHubOtimizado> hubContext) =>
 {
-    string connectionString = "Server=10.10.40.55;Database=GestaoXML_13986009000165;User Id=sa;Password=a2m8x7h5;TrustServerCertificate=True;";
+    // Monta a conexão dinamicamente com base no cabeçalho preenchido na tela
+    string connectionString = $"Server={request.Server};Database={request.Banco};User Id={request.Usuario};Password={request.Senha};TrustServerCertificate=True;";
     string pastaBase = request.CaminhoDestino; 
     string logFile = Path.Combine(Directory.GetCurrentDirectory(), "erro_extracao.log");
 
@@ -126,8 +167,9 @@ app.MapPost("/api/extrair", async ([FromBody] ExtrairRequestOtimizado request, I
 
             using (SqlCommand cmd = new SqlCommand(queryIds, conn))
             {
-                cmd.Parameters.AddWithValue("@inicio", request.DataInicio);
-                cmd.Parameters.AddWithValue("@fim", request.DataFim.Date.AddHours(23).AddMinutes(59).AddSeconds(59));
+                // Aqui convertemos as strings recebidas da API para DateTime com segurança
+                cmd.Parameters.AddWithValue("@inicio", DateTime.Parse(request.DataInicio));
+                cmd.Parameters.AddWithValue("@fim", DateTime.Parse(request.DataFim).Date.AddHours(23).AddMinutes(59).AddSeconds(59));
                 cmd.CommandTimeout = 0;
 
                 using (SqlDataReader reader = await cmd.ExecuteReaderAsync())
@@ -207,6 +249,19 @@ app.MapPost("/api/extrair", async ([FromBody] ExtrairRequestOtimizado request, I
 app.MapGet("/", () => "API de Extração XML está rodando!");
 app.Run("http://localhost:5157");
 
-// Classes renomeadas para blindar contra duplicidade no projeto
+// ==========================================
+// DECLARAÇÃO DE CLASSES/RECORDS NO FINAL (CRÍTICO PARA TOP-LEVEL STATEMENTS)
+// ==========================================
 public class ExtracaoHubOtimizado : Hub { }
-public record ExtrairRequestOtimizado(DateTime DataInicio, DateTime DataFim, string CaminhoDestino);
+
+public record ConexaoSqlRequest(string Server, string Usuario, string Senha);
+
+public record ExtrairRequestOtimizado(
+    string Server, 
+    string Usuario, 
+    string Senha, 
+    string Banco, 
+    string DataInicio, 
+    string DataFim, 
+    string CaminhoDestino
+);

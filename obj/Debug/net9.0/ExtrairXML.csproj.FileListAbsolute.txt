@@ -73,4 +73,5 @@ C:\Users\henrique.fraga\Desktop\ExtrairXML\obj\Debug\net9.0\ExtrairXML.pdb
 C:\Users\henrique.fraga\Desktop\ExtrairXML\obj\Debug\net9.0\ExtrairXML.genruntimeconfig.cache
 C:\Users\henrique.fraga\Desktop\ExtrairXML\obj\Debug\net9.0\ref\ExtrairXML.dll
 C:\Users\henrique.fraga\Desktop\ExtrairXML\bin\Debug\net9.0\ExtrairXML.staticwebassets.runtime.json
-C:\Users\henrique.fraga\Desktop\ExtrairXML\obj\Debug\net9.0\compressed\7gde4ezwic-663w1qnmbb.gz
+C:\Users\henrique.fraga\Desktop\ExtrairXML\obj\Debug\net9.0\ExtrairXML.sourcelink.json
+C:\Users\henrique.fraga\Desktop\ExtrairXML\obj\Debug\net9.0\compressed\7gde4ezwic-89bxn0rng2.gz
