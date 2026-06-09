@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extrator XML Pro</title>
+    <!-- Bibliotecas externas para estilo, ícones e comunicação em tempo real -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+</head>
+
+<body class="bg-slate-100 min-h-screen flex items-center justify-center p-4">
+
+    <div class="max-w-md w-full bg-white rounded-2xl shadow-2xl overflow-hidden">
+        <!-- Cabeçalho -->
+        <div class="bg-indigo-700 p-6 text-white text-center">
+            <h1 class="text-2xl font-bold flex items-center justify-center gap-2">
+                <i data-lucide="database"></i> Extrator XML
+            </h1>
+        </div>
+
+        <div class="p-8 space-y-6">
+            <!-- Seleção de Datas -->
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="text-xs font-bold text-gray-500 uppercase">Início</label>
+                    <input type="date" id="dataInicio" value="2021-04-01"
+                        class="w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 ring-indigo-500">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-gray-500 uppercase">Fim</label>
+                    <input type="date" id="dataFim" value="2021-04-30"
+                        class="w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 ring-indigo-500">
+                </div>
+            </div>
+
+            
+            <div class="space-y-2">
+                <label class="text-xs font-bold text-gray-500 uppercase">Caminho de Destino (Local)</label>
+                <input type="text" id="caminhoDestino" value=""
+                    class="w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 ring-indigo-500"
+                    placeholder="Ex: C:\XML_Extraidos\">
+                <p class="text-[10px] text-gray-400 italic">* Certifique-se de que a API tem permissão de escrita nesta pasta.</p>
+            </div>
+
+            <!-- Botão de Ação -->
+            <button id="btnExtrair" onclick="iniciarExtracao()"
+                class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
+                <i data-lucide="play" class="w-5 h-5"></i> Iniciar Processamento
+            </button>
+
+            <!-- Área de Progresso (SignalR)[cite: 14] -->
+            <div id="statusContainer" class="hidden space-y-2">
+                <div class="flex justify-between text-sm font-medium">
+                    <span id="vendasEncontradas" class="text-indigo-600">Buscando vendas...</span>
+                    <span id="porcentagemTexto" class="text-gray-500">0%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                    <div id="progressBar" class="bg-indigo-600 h-2.5 rounded-full transition-all duration-500"
+                        style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Feedback Final ou Mensagens de Erro[cite: 14] -->
+            <div id="resultArea" class="hidden p-4 rounded-xl border text-sm text-center"></div>
+        </div>
+    </div>
+
+    <script>
+        // Inicializa ícones do Lucide
+        lucide.createIcons();
+
+        // Configuração do SignalR para atualizações em tempo real[cite: 14]
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("http://localhost:5157/extracaoHub")
+            .withAutomaticReconnect()
+            .build();
+
+        // Escuta o total de registros encontrados pela API
+        connection.on("ReceberTotal", (total) => {
+            document.getElementById('vendasEncontradas').innerText = `${total} vendas encontradas`;
+        });
+
+        // Escuta o progresso percentual enviado pela API
+        connection.on("ReceberProgresso", (progresso) => {
+            document.getElementById('progressBar').style.width = `${progresso}%`;
+            document.getElementById('porcentagemTexto').innerText = `${progresso}%`;
+        });
+
+        async function iniciarExtracao() {
+            const btn = document.getElementById('btnExtrair');
+            const statusContainer = document.getElementById('statusContainer');
+            const resultArea = document.getElementById('resultArea');
+
+            // Reset da Interface
+            btn.disabled = true;
+            btn.classList.add('opacity-50');
+            statusContainer.classList.remove('hidden');
+            resultArea.classList.add('hidden');
+            document.getElementById('progressBar').style.width = `0%`;
+            document.getElementById('vendasEncontradas').innerText = "Buscando vendas...";
+
+            // Montagem do Payload para o C#[cite: 12, 13]
+            const payload = {
+                dataInicio: document.getElementById('dataInicio').value,
+                dataFim: document.getElementById('dataFim').value,
+                caminhoDestino: document.getElementById('caminhoDestino').value
+            };
+
+            try {
+                // Inicia conexão SignalR se necessário
+                if (connection.state === "Disconnected") {
+                    await connection.start();
+                }
+
+                // Chamada para o endpoint de extração
+                const response = await fetch('http://localhost:5157/api/extrair', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                // Verifica se o backend reportou erro (ex: Erro 500)[cite: 10, 13]
+                if (!response.ok) {
+                    throw new Error(data.detail || "Erro interno no servidor.");
+                }
+
+                // Sucesso
+                resultArea.innerText = data.mensagem;
+                resultArea.className = "p-4 rounded-xl border bg-green-50 text-green-800 font-bold block";
+
+            } catch (error) {
+                // Captura e exibe falhas de conexão ou erros da API[cite: 10, 13]
+                resultArea.innerText = "Falha: " + error.message;
+                resultArea.className = "p-4 rounded-xl border bg-red-50 text-red-800 font-bold block";
+                console.error("Detalhes da Falha:", error);
+            } finally {
+                // Reabilita o botão após a conclusão ou erro
+                btn.disabled = false;
+                btn.classList.remove('opacity-50');
+            }
+        }
+    </script>
+</body>
+
+</html>
