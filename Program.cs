@@ -6,7 +6,7 @@ using System.IO.Compression;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Configuração de CORS para SignalR e API na rede local
+// Configuração de CORS para SignalR e API na rede local
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("PermitirTudo", policy =>
@@ -22,15 +22,15 @@ builder.Services.AddSignalR();
 
 var app = builder.Build();
 
-// 2. Middlewares
+//  Middlewares
 app.UseDefaultFiles();
 app.UseStaticFiles();
 app.UseCors("PermitirTudo");
 
-// 3. Mapeamento de Endpoints do Hub
+//  Mapeamento de Endpoints do Hub
 app.MapHub<ExtracaoHubOtimizado>("/extracaoHub");
 
-// ENDPOINT 1: Listar as bases de dados elegíveis que começam com "GestaoXML"
+// Lista os bancos GestaoXML
 app.MapPost("/api/listar-bancos", async (ConexaoSqlRequest request) =>
 {
     if (string.IsNullOrWhiteSpace(request.Server) || 
@@ -69,7 +69,7 @@ app.MapPost("/api/listar-bancos", async (ConexaoSqlRequest request) =>
     }
 });
 
-// ENDPOINT 2: Navegador Web de Diretórios do Servidor
+//Seletor de diretorio a ser salvo os arquivos
 app.MapGet("/api/navegar-pastas", ([FromQuery] string? caminho) =>
 {
     try
@@ -111,7 +111,7 @@ app.MapGet("/api/listar-queries", () =>
     return Results.Ok(lista);
 });
 
-// ENDPOINT 4: Extração Dinâmica Otimizada com SignalR
+// Extração Dinâmica Otimizada com acompanhamento
 app.MapPost("/api/extrair", async ([FromBody] ExtrairRequestOtimizado request, IHubContext<ExtracaoHubOtimizado> hubContext) =>
 {
     string connectionString = $"Server={request.Server};Database={request.Banco};User Id={request.Usuario};Password={request.Senha};TrustServerCertificate=True;";

@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "GjVJ27dgoGE=",
+  "dgSpecHash": "TFRJK2GzHAE=",
   "success": true,
-  "projectFilePath": "C:\\Users\\henrique.fraga\\Desktop\\ExtrairXML\\ExtrairXML.csproj",
+  "projectFilePath": "C:\\Telecon_Sistemas\\Outros\\ExtrairXML\\ExtrairXML.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\henrique.fraga\\.nuget\\packages\\azure.core\\1.38.0\\azure.core.1.38.0.nupkg.sha512",
     "C:\\Users\\henrique.fraga\\.nuget\\packages\\azure.identity\\1.11.4\\azure.identity.1.11.4.nupkg.sha512",
