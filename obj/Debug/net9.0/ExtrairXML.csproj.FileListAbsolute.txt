@@ -125,7 +125,6 @@ C:\Telecon_Sistemas\Outros\ExtrairXML\obj\Debug\net9.0\rjimswa.dswa.cache.json
 C:\Telecon_Sistemas\Outros\ExtrairXML\obj\Debug\net9.0\rjsmrazor.dswa.cache.json
 C:\Telecon_Sistemas\Outros\ExtrairXML\obj\Debug\net9.0\rjsmcshtml.dswa.cache.json
 C:\Telecon_Sistemas\Outros\ExtrairXML\obj\Debug\net9.0\scopedcss\bundle\ExtrairXML.styles.css
-C:\Telecon_Sistemas\Outros\ExtrairXML\obj\Debug\net9.0\compressed\7gde4ezwic-wdyt9ibvxt.gz
 C:\Telecon_Sistemas\Outros\ExtrairXML\obj\Debug\net9.0\staticwebassets.build.json
 C:\Telecon_Sistemas\Outros\ExtrairXML\obj\Debug\net9.0\staticwebassets.build.json.cache
 C:\Telecon_Sistemas\Outros\ExtrairXML\obj\Debug\net9.0\staticwebassets.development.json
@@ -136,3 +135,6 @@ C:\Telecon_Sistemas\Outros\ExtrairXML\obj\Debug\net9.0\refint\ExtrairXML.dll
 C:\Telecon_Sistemas\Outros\ExtrairXML\obj\Debug\net9.0\ExtrairXML.pdb
 C:\Telecon_Sistemas\Outros\ExtrairXML\obj\Debug\net9.0\ExtrairXML.genruntimeconfig.cache
 C:\Telecon_Sistemas\Outros\ExtrairXML\obj\Debug\net9.0\ref\ExtrairXML.dll
+C:\Telecon_Sistemas\Outros\ExtrairXML\obj\Debug\net9.0\compressed\zqabeols3z-anok5jegfz.gz
+C:\Telecon_Sistemas\Outros\ExtrairXML\obj\Debug\net9.0\compressed\27q1nh3qbe-l5dk3mveg6.gz
+C:\Telecon_Sistemas\Outros\ExtrairXML\obj\Debug\net9.0\compressed\7gde4ezwic-nfnvi5gk8q.gz

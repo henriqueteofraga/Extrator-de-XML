@@ -117,13 +117,49 @@ app.MapGet("/api/listar-queries", async () =>
     }
 });
 
+// ENDPOINT NOVO: Salvar uma nova regra de negócio dentro da tabela administrativa central
+app.MapPost("/api/salvar-regra", async ([FromBody] CadastrarRegraRequest request) =>
+{
+    if (string.IsNullOrWhiteSpace(request.Id) || 
+        string.IsNullOrWhiteSpace(request.Nome) || 
+        string.IsNullOrWhiteSpace(request.QuerySql))
+    {
+        return Results.BadRequest("Todos os campos do formulário são obrigatórios.");
+    }
+
+    try
+    {
+        using (var connection = new SqlConnection(ConnectionStringConfigCentral))
+        {
+            await connection.OpenAsync();
+            
+            // Query parametrizada clássica para evitar qualquer risco de SQL Injection ou quebra de aspas simples
+            var query = "INSERT INTO RegrasExtracao (Id, Nome, QuerySql, Ativo) VALUES (@id, @nome, @querySql, 1);";
+            
+            using (var command = new SqlCommand(query, connection))
+            {
+                command.Parameters.AddWithValue("@id", request.Id.Trim().ToLower());
+                command.Parameters.AddWithValue("@nome", request.Nome.Trim());
+                command.Parameters.AddWithValue("@querySql", request.QuerySql.Trim());
+                
+                await command.ExecuteNonQueryAsync();
+            }
+        }
+        return Results.Ok(new { mensagem = "Regra armazenada com sucesso!" });
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem($"Erro ao gravar regra no banco de dados central: {ex.Message}");
+    }
+});
+
 // ENDPOINT 4: Extração Distribuída Otimizada
 app.MapPost("/api/extrair", async ([FromBody] ExtrairRequestOtimizado request, IHubContext<ExtracaoHubOtimizado> hubContext) =>
 {
     // String de conexão para a máquina alvo onde estão os dados da extração
     string connectionStringDados = $"Server={request.Server};Database={request.Banco};User Id={request.Usuario};Password={request.Senha};TrustServerCertificate=True;";
-    string pastaBase = request.CaminhoDestino; 
-    string logFile = Path.Combine(Directory.GetCurrentDirectory(), "erro_extracao.log");
+    string pastaBase = request.CaminhoDestino;
+    string logFile = Path.Combine(pastaBase, "erro_extracao.log");
 
     string querySelecionada = "";
 
@@ -157,11 +193,11 @@ app.MapPost("/api/extrair", async ([FromBody] ExtrairRequestOtimizado request, I
           AND EXISTS (
               SELECT 1 
               FROM Gestao.dbo.VendasProdutos VP
-              INNER JOIN #ProdutosElegiveis PE ON CAST(vp.CodigoProduto AS BIGINT) = PE.CodigoProduto
+              INNER JOIN #VendasElegiveis PE ON CAST(vp.CodigoProduto AS BIGINT) = PE.CodigoProduto
               WHERE vp.CodVenda = v.Codigo
           );
 
-        IF OBJECT_ID('tempdb..#ProdutosElegiveis') IS NOT NULL DROP TABLE #ProdutosElegiveis;";
+        IF OBJECT_ID('tempdb..#VendasElegiveis') IS NOT NULL DROP TABLE #VendasElegiveis;";
 
     string queryExecucaoCompleta = querySelecionada + sqlFinalComum;
 
@@ -266,3 +302,4 @@ app.Run("http://0.0.0.0:5157");
 public class ExtracaoHubOtimizado : Hub { }
 public record ConexaoSqlRequest(string Server, string Usuario, string Senha);
 public record ExtrairRequestOtimizado(string Server, string Usuario, string Senha, string Banco, string DataInicio, string DataFim, string CaminhoDestino, string QueryId);
+public record CadastrarRegraRequest(string Id, string Nome, string QuerySql);

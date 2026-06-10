@@ -20,9 +20,9 @@ GO
 
 INSERT INTO RegrasExtracao(Id,Nome,QuerySql)
 VALUES(
-'todas_as_vendas','Todas as Vendas','IF OBJECT_ID(''tempdb..#ProdutosElegiveis'') IS NOT NULL DROP TABLE #ProdutosElegiveis;
-CREATE TABLE #ProdutosElegiveis (CodigoProduto BIGINT PRIMARY KEY);
-INSERT INTO #ProdutosElegiveis (CodigoProduto)
+'todas_as_vendas','Todas as Vendas','IF OBJECT_ID(''tempdb..#VendasElegiveis'') IS NOT NULL DROP TABLE #VendasElegiveis;
+CREATE TABLE #VendasElegiveis (CodigoProduto BIGINT PRIMARY KEY);
+INSERT INTO #VendasElegiveis (CodigoProduto)
 select Codigo from Gestao.dbo.Vendas');
 
 
@@ -34,10 +34,10 @@ INSERT INTO RegrasExtracao (Id, Nome, QuerySql)
 VALUES (
     'vendas_cesta_basica', 
     'Vendas Cesta B�sica', 
-    'IF OBJECT_ID(''tempdb..#ProdutosElegiveis'') IS NOT NULL DROP TABLE #ProdutosElegiveis;
-    CREATE TABLE #ProdutosElegiveis (CodigoProduto BIGINT PRIMARY KEY);
+    'IF OBJECT_ID(''tempdb..#VendasElegiveis'') IS NOT NULL DROP TABLE #VendasElegiveis;
+    CREATE TABLE #VendasElegiveis (CodigoProduto BIGINT PRIMARY KEY);
 
-    INSERT INTO #ProdutosElegiveis (CodigoProduto)
+    INSERT INTO #VendasElegiveis (CodigoProduto)
     SELECT DISTINCT CAST(p.Codigo AS BIGINT)
     FROM Gestao.dbo.Produtos P
     INNER JOIN Gestao.dbo.Grupos G ON P.Grupo = G.Codigo

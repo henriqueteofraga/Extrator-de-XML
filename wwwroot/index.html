@@ -272,10 +272,22 @@
 <body>
 
     <div class="container">
-        <h1>📦 Monitor de Extração Otimizada</h1>
+        <div
+            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid var(--border-color); padding-bottom: 15px;">
+            <h1 style="margin: 0; text-align: left;"> 📦 Extrator de XML</h1>
+            <a href="documentacao.html"
+                style="text-decoration: none; color: #555; font-weight: 600; font-size: 0.9rem; padding: 8px 16px; border: 1px solid var(--border-color); border-radius: 4px; background: #fff; transition: all 0.2s;"
+                onmouseover="this.style.background='#eee'" onmouseout="this.style.background='#fff'">📖 Ver Documentação
+                / Ajuda</a>
+        </div>
+        </h1>
+        <a href="cadastrar-regra.html"
+            style="font-size: 0.85rem; color: var(--primary); font-weight: 600; text-decoration: none; transition: color 0.2s;"
+            onmouseover="this.style.color='var(--primary-hover)'" onmouseout="this.style.color='var(--primary)'">➕
+            Cadastrar Query</a>
 
         <div class="extractor-card">
-            <h2>1. Conexão ao Servidor SQL Server</h2>
+            <h2> Conexão ao Servidor SQL Server</h2>
             <div class="config-grid">
                 <div class="form-group">
                     <label for="dbServer">Servidor (IP ou Nome)</label>
@@ -298,11 +310,11 @@
         </div>
 
         <div class="extractor-card">
-            <h2>2. Parâmetros de Extração</h2>
+            <h2> Parâmetros de Extração</h2>
             <div class="form-group">
                 <label for="dbBanco">Banco de Dados</label>
                 <select id="dbBanco" disabled>
-                    <option value="">Selecione -- (Conecte Primeiro)</option>
+                    <option value="">Selecione</option>
                 </select>
             </div>
             <div class="config-grid">
@@ -317,16 +329,23 @@
                 </div>
 
                 <div class="form-group full-width">
-                    <label for="seletorQuery">Regra / Filtro de Extração</label>
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                        <label for="seletorQuery" style="margin-bottom: 0;">Regra / Filtro de Extração</label>
+                        <a href="cadastrar-regra.html"
+                            style="font-size: 0.85rem; color: var(--primary); font-weight: 600; text-decoration: none; transition: color 0.2s;"
+                            onmouseover="this.style.color='var(--primary-hover)'"
+                            onmouseout="this.style.color='var(--primary)'">➕ Cadastrar Query</a>
+                    </div>
                     <select id="seletorQuery">
                         <option value="">Carregando regras disponíveis...</option>
                     </select>
                 </div>
 
                 <div class="form-group full-width">
-                    <label for="caminhoDestino">Diretório de Destino (No Servidor da API ou Rede)</label>
+                    <label for="caminhoDestino">Diretório de Destino (Ler a documentação antes)</label>
                     <div style="display: flex; gap: 10px;">
-                        <input type="text" id="caminhoDestino" placeholder="Ex: C:\XMLs\Exportacao" style="flex: 1;">
+                        <input type="text" id="caminhoDestino" placeholder="Ex: C:\XMLs\Exportacao" style="flex: 1;"value="\\10.10.40.55\Extrator XML">
                         <button type="button" class="btn-connect"
                             style="margin-top: 0; padding: 0 15px; background-color: var(--secondary);"
                             onclick="abrirSeletorDePasta()">📁 Procurar...</button>
@@ -335,13 +354,13 @@
 
                 <div class="form-group full-width">
                     <button type="button" id="btnExtrair" class="btn-connect" style="background-color: var(--success);"
-                        onclick="iniciarExtracao()">Iniciar Extração em Lotes</button>
+                        onclick="iniciarExtracao()">Iniciar Extração</button>
                 </div>
             </div>
         </div>
 
         <div class="progress-container">
-            <h2>3. Acompanhamento em Tempo Real</h2>
+            <h2> Acompanhamento em Tempo Real</h2>
 
             <div class="status-container">
                 <div class="status-box">
@@ -567,7 +586,7 @@
                 dataInicio: document.getElementById('dataInicio').value,
                 dataFim: document.getElementById('dataFim').value,
                 caminhoDestino: document.getElementById('caminhoDestino').value,
-                queryId: document.getElementById('seletorQuery').value 
+                queryId: document.getElementById('seletorQuery').value
             };
 
             if (!payload.banco) { alert("Por favor, selecione um banco de dados primeiro!"); return; }

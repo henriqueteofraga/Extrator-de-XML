@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastrar Regra de Extração</title>
+    <style>
+        :root {
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --text-main: #333333;
+            --primary: #0078d4;
+            --primary-hover: #005a9e;
+            --border-color: #e0e0e0;
+            --success: #107c41;
+            --success-hover: #0b592e;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 700px;
+        }
+
+        .header-area {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: var(--primary);
+            margin: 0;
+            font-size: 1.6rem;
+        }
+
+        .btn-back {
+            text-decoration: none;
+            color: #555;
+            font-weight: 600;
+            font-size: 0.9rem;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: #fff;
+            transition: background 0.2s;
+        }
+
+        .btn-back:hover {
+            background: #eee;
+        }
+
+        .form-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 25px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group.full-width {
+            grid-column: span 2;
+        }
+
+        .form-group label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #555;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 180px;
+            font-family: 'Consolas', 'Courier New', Courier, monospace;
+            font-size: 0.9rem;
+            background-color: #fafafa;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            border-color: var(--primary);
+            background-color: #fff;
+        }
+
+        .btn-submit {
+            background-color: var(--success);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 10px;
+        }
+
+        .btn-submit:hover {
+            background-color: var(--success-hover);
+        }
+
+        .btn-submit:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .tip-box {
+            background-color: #eff6fc;
+            border-left: 4px solid var(--primary);
+            padding: 12px;
+            border-radius: 0 4px 4px 0;
+            font-size: 0.85rem;
+            color: #242424;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="header-area">
+            <h1>📝 Nova Regra de Extração</h1>
+            <a href="index.html" class="btn-back">⬅️ Voltar ao Início</a>
+        </div>
+
+        <div class="form-card">
+            <form id="formRegra" onsubmit="salvarNovaRegra(event)">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="regraId">Identificador Único (ID)</label>
+                        <input type="text" id="regraId" placeholder="Ex: vendas_bebidas" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="regraNome">Nome amigavel da Query</label>
+                        <input type="text" id="regraNome" placeholder="Ex: Vendas de Bebidas" required>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <div class="tip-box">
+                            <strong>💡 Instrução para o SQL:</strong> O código digitado abaixo deve conter unicamente a
+                            criação e a inserção da tabela temporária <code>#VendasElegiveis</code>. O bloco final de
+                            ligação com as tabelas de vendas e extração de XML é anexado de forma automática pela
+                            API.</br> Todo começo de Query deve conter o seguinte codigo:<br><code>IF OBJECT_ID('tempdb..#VendasElegiveis') IS NOT NULL <br>DROP TABLE #VendasElegiveis;<br>
+CREATE TABLE #VendasElegiveis (CodigoProduto BIGINT PRIMARY KEY);</code>
+                        </div>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="regraSql">Código Query SQL</label>
+                        <textarea id="regraSql"
+                            placeholder="IF OBJECT_ID('tempdb..#VendasElegiveis') IS NOT NULL DROP TABLE #VendasElegiveis;&#10;CREATE TABLE #VendasElegiveis (CodigoProduto BIGINT PRIMARY KEY);&#10;&#10;INSERT INTO #VendasElegiveis (CodigoProduto)&#10;SELECT DISTINCT CAST(p.Codigo AS BIGINT) FROM Gestao.dbo.Produtos P... "
+                            required></textarea>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <button type="submit" id="btnSalvar" class="btn-submit">Salvar Query</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const urlBase = window.location.origin;
+
+        // Trata a digitação do ID para ficar sempre amigável para banco de dados (snake_case)
+        document.getElementById('regraId').addEventListener('input', function (e) {
+            e.target.value = e.target.value
+                .toLowerCase()
+                .replace(/\s+/g, '_')
+                .replace(/[^\w]/g, '');
+        });
+
+        async function salvarNovaRegra(event) {
+            event.preventDefault();
+            const btn = document.getElementById('btnSalvar');
+
+            const payload = {
+                id: document.getElementById('regraId').value,
+                nome: document.getElementById('regraNome').value,
+                querySql: document.getElementById('regraSql').value
+            };
+
+            btn.disabled = true;
+            btn.innerText = "Gravando...";
+
+            try {
+                const response = await fetch(`${urlBase}/api/salvar-regra`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    alert("Regra cadastrada com sucesso!");
+                    document.getElementById('formRegra').reset();
+                } else {
+                    const erro = await response.json();
+                    alert("Erro ao salvar regra: " + (erro.detail || "Erro interno"));
+                }
+            } catch (error) {
+                alert("Falha na comunicação com o servidor: " + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Query salva com sucesso!";
+            }
+        }
+    </script>
+</body>
+
+</html>
