@@ -6,7 +6,9 @@ using System.IO.Compression;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configuração de CORS para SignalR e API na rede local
+// CONFIGURAÇÃO CENTRAL: String de conexão fixa para onde está o banco Extrator_Config (Mude o IP/Senha se necessário)
+const string ConnectionStringConfigCentral = "Server=localhost;Database=Extrator_Config;User Id=sa;Password=a2m8x7h5;TrustServerCertificate=True;";
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("PermitirTudo", policy =>
@@ -22,20 +24,16 @@ builder.Services.AddSignalR();
 
 var app = builder.Build();
 
-//  Middlewares
 app.UseDefaultFiles();
 app.UseStaticFiles();
 app.UseCors("PermitirTudo");
 
-//  Mapeamento de Endpoints do Hub
 app.MapHub<ExtracaoHubOtimizado>("/extracaoHub");
 
-// Lista os bancos GestaoXML
+// ENDPOINT 1: Listar bancos do IP alvo digitado na tela
 app.MapPost("/api/listar-bancos", async (ConexaoSqlRequest request) =>
 {
-    if (string.IsNullOrWhiteSpace(request.Server) || 
-        string.IsNullOrWhiteSpace(request.Usuario) || 
-        string.IsNullOrWhiteSpace(request.Senha))
+    if (string.IsNullOrWhiteSpace(request.Server) || string.IsNullOrWhiteSpace(request.Usuario) || string.IsNullOrWhiteSpace(request.Senha))
     {
         return Results.BadRequest("Todos os campos de conexão são obrigatórios.");
     }
@@ -65,125 +63,92 @@ app.MapPost("/api/listar-bancos", async (ConexaoSqlRequest request) =>
     }
     catch (Exception ex)
     {
-        return Results.Problem($"Erro ao conectar ao SQL Server: {ex.Message}");
+        return Results.Problem($"Erro ao conectar ao SQL Server alvo: {ex.Message}");
     }
 });
 
-//Seletor de diretorio a ser salvo os arquivos
+// ENDPOINT 2: Navegador de pastas do servidor da API
 app.MapGet("/api/navegar-pastas", ([FromQuery] string? caminho) =>
 {
     try
     {
         if (string.IsNullOrWhiteSpace(caminho))
         {
-            var unidades = DriveInfo.GetDrives()
-                .Where(d => d.IsReady)
-                .Select(d => d.Name)
-                .ToList();
+            var unidades = DriveInfo.GetDrives().Where(d => d.IsReady).Select(d => d.Name).ToList();
             return Results.Ok(new { tipo = "unidades", itens = unidades });
         }
 
-        if (!Directory.Exists(caminho))
-        {
-            return Results.BadRequest("O diretório especificado não existe no servidor.");
-        }
+        if (!Directory.Exists(caminho)) return Results.BadRequest("O diretório não existe.");
 
-        var subPastas = Directory.GetDirectories(caminho)
-            .Select(p => Path.GetFullPath(p))
-            .OrderBy(p => p)
-            .ToList();
-
+        var subPastas = Directory.GetDirectories(caminho).Select(p => Path.GetFullPath(p)).OrderBy(p => p).ToList();
         return Results.Ok(new { tipo = "pastas", atual = Path.GetFullPath(caminho), itens = subPastas });
     }
     catch (Exception ex)
     {
-        return Results.Problem($"Erro ao listar diretório: {ex.Message}");
+        return Results.Problem(ex.Message);
     }
 });
 
-// ENDPOINT 3: Listar as Queries/Regras de Negócio disponíveis (Atualizado para Vendas Cesta Basica)
-app.MapGet("/api/listar-queries", () =>
+// ENDPOINT 3: Busca as queries do banco central administrativo (Independente do IP da tela)
+app.MapGet("/api/listar-queries", async () =>
 {
-    var lista = new[]
+    var queries = new List<object>();
+    try
     {
-        new { id = "vendas_cesta_basica", nome = "Vendas Cesta Basica" }
-    };
-    return Results.Ok(lista);
+        using (var connection = new SqlConnection(ConnectionStringConfigCentral))
+        {
+            await connection.OpenAsync();
+            var query = "SELECT Id, Nome FROM RegrasExtracao WHERE Ativo = 1 ORDER BY Nome;";
+            
+            using (var command = new SqlCommand(query, connection))
+            using (var reader = await command.ExecuteReaderAsync())
+            {
+                while (await reader.ReadAsync())
+                {
+                    queries.Add(new { id = reader.GetString(0), nome = reader.GetString(1) });
+                }
+            }
+        }
+        return Results.Ok(queries);
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem($"Erro ao buscar regras no banco central: {ex.Message}");
+    }
 });
 
-// Extração Dinâmica Otimizada com acompanhamento
+// ENDPOINT 4: Extração Distribuída Otimizada
 app.MapPost("/api/extrair", async ([FromBody] ExtrairRequestOtimizado request, IHubContext<ExtracaoHubOtimizado> hubContext) =>
 {
-    string connectionString = $"Server={request.Server};Database={request.Banco};User Id={request.Usuario};Password={request.Senha};TrustServerCertificate=True;";
+    // String de conexão para a máquina alvo onde estão os dados da extração
+    string connectionStringDados = $"Server={request.Server};Database={request.Banco};User Id={request.Usuario};Password={request.Senha};TrustServerCertificate=True;";
     string pastaBase = request.CaminhoDestino; 
     string logFile = Path.Combine(Directory.GetCurrentDirectory(), "erro_extracao.log");
 
-    // 1. Variável para a query sqlRegraFiscal (Focada unicamente na população da tabela temporária #ProdutosElegiveis)
-    string sqlRegraFiscal = @"
-        IF OBJECT_ID('tempdb..#ProdutosElegiveis') IS NOT NULL DROP TABLE #ProdutosElegiveis;
+    string querySelecionada = "";
 
-        CREATE TABLE #ProdutosElegiveis (
-            CodigoProduto BIGINT PRIMARY KEY
-        );
+    // PASSO A: Busca a regra fiscal usando a conexão do banco central de configurações
+    try
+    {
+        using (var configConn = new SqlConnection(ConnectionStringConfigCentral))
+        {
+            await configConn.OpenAsync();
+            var sqlBusca = "SELECT QuerySql FROM RegrasExtracao WHERE Id = @id AND Ativo = 1;";
+            using (var configCmd = new SqlCommand(sqlBusca, configConn))
+            {
+                configCmd.Parameters.AddWithValue("@id", request.QueryId);
+                var resultado = await configCmd.ExecuteScalarAsync();
+                if (resultado == null) return Results.Problem("A regra selecionada não foi encontrada no banco central.");
+                querySelecionada = resultado.ToString()!;
+            }
+        }
+    }
+    catch (Exception exConfig)
+    {
+        return Results.Problem($"Falha ao ler banco de configurações central: {exConfig.Message}");
+    }
 
-        INSERT INTO #ProdutosElegiveis (CodigoProduto)
-        SELECT DISTINCT CAST(p.Codigo AS BIGINT)
-        FROM Gestao.dbo.Produtos P
-        INNER JOIN Gestao.dbo.Grupos G ON P.Grupo = G.Codigo
-        LEFT JOIN Gestao.dbo.Grupos GPAI ON GPAI.Codigo = Gestao.dbo.FN_GRUPO_PAI(G.Codigo)
-        LEFT JOIN Gestao.dbo.Grupos GPAIIMED ON GPAIIMED.Codigo = Gestao.dbo.FN_GRUPO_PAI_IMEDIATO(G.Codigo)
-        WHERE 
-        (
-            (
-                P.Aliquota = 1 AND (
-                    (G.Nome LIKE 'OVO%' OR GPAI.Nome LIKE 'OVO%' OR GPAIIMED.Nome LIKE 'OVO%' OR P.Descricao LIKE 'OVO%')
-                    OR (
-                        (G.Nome LIKE 'HORT%' OR GPAI.Nome LIKE 'HORT%' OR GPAIIMED.Nome LIKE 'HORT%')
-                        AND NOT (G.Nome LIKE 'FLOR%' OR GPAI.Nome LIKE 'FLOR%' OR GPAIIMED.Nome LIKE 'FLOR%' OR P.Descricao LIKE 'FLOR%')
-                    )
-                    OR (G.Nome LIKE 'LEITE%' OR GPAI.Nome LIKE 'LEITE%' OR GPAIIMED.Nome LIKE 'LEITE%' OR P.Descricao LIKE 'LEITE%')
-                    OR (G.Nome LIKE 'FLOR%' OR GPAI.Nome LIKE 'FLOR%' OR GPAIIMED.Nome LIKE 'FLOR%' OR P.Descricao LIKE 'FLOR%')
-                )
-            )
-            OR 
-            (
-                P.Aliquota = 7 AND P.AliquotaIcmsNFSaidas = 12 AND (
-                    (G.Nome LIKE 'PAO%' OR GPAI.Nome LIKE 'PAO%' OR GPAIIMED.Nome LIKE 'PAO%' OR P.Descricao LIKE 'PAO%')
-                    OR (G.Nome LIKE 'ARROZ%' OR GPAI.Nome LIKE 'ARROZ%' OR GPAIIMED.Nome LIKE 'ARROZ%' OR P.Descricao LIKE 'ARROZ%')
-                    OR ((G.Nome LIKE 'PEIXE%' OR GPAI.Nome LIKE 'PEIXE%' OR GPAIIMED.Nome LIKE 'PEIXE%' OR P.Descricao LIKE 'PEIXE%') AND P.BASE_REDUZIDA_ICMS > 0)
-                    OR ((G.Nome LIKE 'ERVA%' OR GPAI.Nome LIKE 'ERVA%' OR GPAIIMED.Nome LIKE 'ERVA%' OR P.Descricao LIKE 'ERVA%' OR P.Descricao LIKE '%MATE%') AND P.BASE_REDUZIDA_ICMS > 0)
-                    OR ((G.Nome LIKE 'FARINHA%' OR GPAI.Nome LIKE 'FARINHA%' OR GPAIIMED.Nome LIKE 'FARINHA%' OR P.Descricao LIKE 'FARINHA%') AND P.BASE_REDUZIDA_ICMS > 0)
-                    OR ((G.Nome LIKE 'MASSA%' OR GPAI.Nome LIKE 'MASSA%' OR GPAIIMED.Nome LIKE 'MASSA%' OR P.Descricao LIKE 'MASSA%') AND P.BASE_REDUZIDA_ICMS > 0)
-                    OR ((G.Nome LIKE 'FEIJAO%' OR GPAI.Nome LIKE 'FEIJAO%' OR GPAIIMED.Nome LIKE 'FEIJAO%' OR P.Descricao LIKE 'FEIJAO%') AND P.BASE_REDUZIDA_ICMS > 0)
-                    OR ((G.Nome LIKE 'ALHO%' OR GPAI.Nome LIKE 'ALHO%' OR GPAIIMED.Nome LIKE 'ALHO%' OR P.Descricao LIKE 'ALHO%') AND P.BASE_REDUZIDA_ICMS > 0)
-                )
-            )
-            OR 
-            (
-                P.Aliquota = 3 AND P.BaseReduzidaST > 0
-                AND (G.Nome LIKE 'CARNE%' OR GPAI.Nome LIKE 'CARNE%' OR GPAIIMED.Nome LIKE 'CARNE%' OR G.Nome LIKE 'AÇOUGUE%' OR GPAI.Nome LIKE 'AÇOUGUE%' OR GPAIIMED.Nome LIKE 'AÇOUGUE%')
-            )
-            OR 
-            (
-                P.BASE_REDUZIDA_ICMS > 0 AND P.Aliquota = 7 AND P.AliquotaIcmsNFSaidas IN (12, 17)
-                AND NOT (G.Nome LIKE 'PAO%' OR GPAI.Nome LIKE 'PAO%' OR GPAIIMED.Nome LIKE 'PAO%' OR P.Descricao LIKE 'PAO%')
-                AND NOT (G.Nome LIKE 'ARROZ%' OR GPAI.Nome LIKE 'ARROZ%' OR GPAIIMED.Nome LIKE 'ARROZ%' OR P.Descricao LIKE 'ARROZ%')
-                AND NOT (G.Nome LIKE 'PEIXE%' OR GPAI.Nome LIKE 'PEIXE%' OR GPAIIMED.Nome LIKE 'PEIXE%' OR P.Descricao LIKE 'PEIXE%')
-                AND NOT (G.Nome LIKE 'ERVA%' OR GPAI.Nome LIKE 'ERVA%' OR GPAIIMED.Nome LIKE 'ERVA%' OR P.Descricao LIKE 'ERVA%' OR P.Descricao LIKE '%MATE%')    
-                AND NOT (G.Nome LIKE 'FARINHA%' OR GPAI.Nome LIKE 'FARINHA%' OR GPAIIMED.Nome LIKE 'FARINHA%' OR P.Descricao LIKE 'FARINHA%')
-                AND NOT (G.Nome LIKE 'MASSA%' OR GPAI.Nome LIKE 'MASSA%' OR GPAIIMED.Nome LIKE 'MASSA%' OR P.Descricao LIKE 'MASSA%')
-                AND NOT (G.Nome LIKE 'FEIJAO%' OR GPAI.Nome LIKE 'FEIJAO%' OR GPAIIMED.Nome LIKE 'FEIJAO%' OR P.Descricao LIKE 'FEIJAO%')
-                AND NOT (G.Nome LIKE 'ALHO%' OR GPAI.Nome LIKE 'ALHO%' OR GPAIIMED.Nome LIKE 'ALHO%' OR P.Descricao LIKE 'ALHO%')
-            )
-            OR      
-            (
-                (G.Nome LIKE 'FARINHA%' OR GPAI.Nome LIKE 'FARINHA%' OR GPAIIMED.Nome LIKE 'FARINHA%')
-                AND (P.Descricao LIKE 'FAR%FOSF%' OR P.Descricao LIKE 'FAR%ANTIOX%' OR P.Descricao LIKE 'FAR%EMULS%' OR P.Descricao LIKE 'FAR%VITAM%' OR P.Descricao LIKE 'FAR%FERM%' OR P.Descricao LIKE 'FAR%ARROZ%' OR P.Descricao LIKE 'FAR%MAND%' OR P.Descricao LIKE 'FAR%MILHO%')
-                AND P.AliquotaIcmsNFSaidas = 12 AND P.Aliquota IN (7, 12)
-            )
-        );";
-
-    // 2. Select abaixo isolado, que pega os XMLs mapeados a partir da tabela temporária preenchida acima
+    // Bloco comum de mapeamento final de arquivos
     string sqlFinalComum = @"
         SELECT CAST(vxml.CodVenda AS BIGINT)
         FROM VendasXML vxml
@@ -198,16 +163,9 @@ app.MapPost("/api/extrair", async ([FromBody] ExtrairRequestOtimizado request, I
 
         IF OBJECT_ID('tempdb..#ProdutosElegiveis') IS NOT NULL DROP TABLE #ProdutosElegiveis;";
 
-    // 3. Variável para receber a query que foi selecionada via ecrã
-    string querySelecionada = request.QueryId switch
-    {
-        "vendas_cesta_basica" => sqlRegraFiscal,
-        _ => sqlRegraFiscal // Fallback padrão seguro
-    };
-
-    // Junção dinâmica do bloco condicional estruturado com a busca de XMLs padrão
     string queryExecucaoCompleta = querySelecionada + sqlFinalComum;
 
+    // PASSO B: Executa a consulta unificada no banco de dados alvo (cliente)
     try
     {
         if (!Directory.Exists(pastaBase)) Directory.CreateDirectory(pastaBase);
@@ -215,7 +173,7 @@ app.MapPost("/api/extrair", async ([FromBody] ExtrairRequestOtimizado request, I
         int batchSize = 500;
         var codigos = new List<long>();
 
-        using (SqlConnection conn = new SqlConnection(connectionString))
+        using (SqlConnection conn = new SqlConnection(connectionStringDados))
         {
             await conn.OpenAsync();
 
@@ -294,7 +252,7 @@ app.MapPost("/api/extrair", async ([FromBody] ExtrairRequestOtimizado request, I
                 }
             }
         }
-        return Results.Ok(new { mensagem = "Extração concluída diretamente na raiz!", total = codigos.Count });
+        return Results.Ok(new { mensagem = "Extração concluída com sucesso!", total = codigos.Count });
     }
     catch (Exception ex)
     {
@@ -302,12 +260,9 @@ app.MapPost("/api/extrair", async ([FromBody] ExtrairRequestOtimizado request, I
     }
 });
 
-app.MapGet("/", () => "API de Extração XML está rodando!");
-
+app.MapGet("/", () => "API de Extração XML Distribuída rodando!");
 app.Run("http://0.0.0.0:5157");
 
 public class ExtracaoHubOtimizado : Hub { }
-
 public record ConexaoSqlRequest(string Server, string Usuario, string Senha);
-
 public record ExtrairRequestOtimizado(string Server, string Usuario, string Senha, string Banco, string DataInicio, string DataFim, string CaminhoDestino, string QueryId);
