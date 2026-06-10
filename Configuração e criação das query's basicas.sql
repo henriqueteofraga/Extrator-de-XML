@@ -33,7 +33,7 @@ GO
 INSERT INTO RegrasExtracao (Id, Nome, QuerySql)
 VALUES (
     'vendas_cesta_basica', 
-    'Vendas Cesta B�sica', 
+    'Vendas Cesta Basica', 
     'IF OBJECT_ID(''tempdb..#VendasElegiveis'') IS NOT NULL DROP TABLE #VendasElegiveis;
     CREATE TABLE #VendasElegiveis (CodigoProduto BIGINT PRIMARY KEY);
 

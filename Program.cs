@@ -296,8 +296,8 @@ app.MapPost("/api/extrair", async ([FromBody] ExtrairRequestOtimizado request, I
     }
 });
 
-app.MapGet("/", () => "API de Extração XML Distribuída rodando!");
-app.Run("http://0.0.0.0:5157");
+//app.MapGet("/", () => "API de Extração XML Distribuída rodando!");
+app.Run();
 
 public class ExtracaoHubOtimizado : Hub { }
 public record ConexaoSqlRequest(string Server, string Usuario, string Senha);
