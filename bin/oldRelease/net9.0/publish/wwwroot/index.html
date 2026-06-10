@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor de Extração XML - Realtime</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --text-main: #333333;
+            --primary: #0078d4;
+            --primary-hover: #005a9e;
+            --border-color: #e0e0e0;
+            --success: #107c41;
+            --secondary: #4a5568;
+            --secondary-hover: #2d3748;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary);
+            margin-bottom: 30px;
+        }
+
+        .extractor-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 25px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            margin-bottom: 25px;
+        }
+
+        .extractor-card h2 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+            color: var(--primary);
+            border-bottom: 2px solid var(--bg-color);
+            padding-bottom: 10px;
+        }
+
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group.full-width {
+            grid-column: span 2;
+        }
+
+        .form-group label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #555;
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: var(--primary);
+        }
+
+        .btn-connect {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s, opacity 0.2s;
+            margin-top: 10px;
+        }
+
+        .btn-connect:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-connect:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .status-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            gap: 15px;
+        }
+
+        .status-box {
+            flex: 1;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+        }
+
+        .status-box .value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin-top: 5px;
+        }
+
+        .status-box .value.success {
+            color: var(--success);
+        }
+
+        .progress-container {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .progress-bar-bg {
+            background-color: #e0e0e0;
+            border-radius: 6px;
+            overflow: hidden;
+            height: 25px;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .progress-bar-fill {
+            background-color: var(--success);
+            height: 100%;
+            width: 0%;
+            transition: width 0.4s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        /* STYLES DO MODAL DO NAVEGADOR DE PASTAS */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            display: flex;
+            flex-direction: column;
+            max-height: 80vh;
+        }
+
+        .modal-header {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: var(--primary);
+            margin-bottom: 5px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        .modal-path-indicator {
+            font-size: 0.85rem;
+            color: #666;
+            background: #eee;
+            padding: 6px 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            word-break: break-all;
+        }
+
+        .modal-body {
+            overflow-y: auto;
+            flex: 1;
+            margin-bottom: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: #fafafa;
+            max-height: 350px;
+        }
+
+        .pasta-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .pasta-item {
+            padding: 10px 15px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .pasta-item:hover {
+            background-color: #edf2f7;
+        }
+
+        .pasta-item.voltar-item {
+            font-weight: bold;
+            background-color: #f7fafc;
+            color: var(--primary);
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div
+            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid var(--border-color); padding-bottom: 15px;">
+            <h1 style="margin: 0; text-align: left;"> 📦 Extrator de XML</h1>
+            <a href="documentacao.html"
+                style="text-decoration: none; color: #555; font-weight: 600; font-size: 0.9rem; padding: 8px 16px; border: 1px solid var(--border-color); border-radius: 4px; background: #fff; transition: all 0.2s;"
+                onmouseover="this.style.background='#eee'" onmouseout="this.style.background='#fff'">📖 Ver Documentação
+                / Ajuda</a>
+        </div>
+        </h1>
+        <a href="cadastrar-regra.html"
+            style="font-size: 0.85rem; color: var(--primary); font-weight: 600; text-decoration: none; transition: color 0.2s;"
+            onmouseover="this.style.color='var(--primary-hover)'" onmouseout="this.style.color='var(--primary)'">➕
+            Cadastrar Query</a>
+
+        <div class="extractor-card">
+            <h2> Conexão ao Servidor SQL Server</h2>
+            <div class="config-grid">
+                <div class="form-group">
+                    <label for="dbServer">Servidor (IP ou Nome)</label>
+                    <input type="text" id="dbServer" value="" placeholder="Ex: 10.10.40.55">
+                </div>
+                <div class="form-group">
+                    <label for="dbUsuario">Usuário SQL</label>
+                    <input type="text" id="dbUsuario" value="">
+                </div>
+                <div class="form-group">
+                    <label for="dbSenha">Senha</label>
+                    <input type="password" id="dbSenha" value="">
+                </div>
+
+                <div class="form-group full-width">
+                    <button type="button" id="btnConectar" class="btn-connect" onclick="carregarBancos()">Conectar e
+                        Listar Bancos</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="extractor-card">
+            <h2> Parâmetros de Extração</h2>
+            <div class="form-group">
+                <label for="dbBanco">Banco de Dados</label>
+                <select id="dbBanco" disabled>
+                    <option value="">Selecione</option>
+                </select>
+            </div>
+            <div class="config-grid">
+                <div class="form-group">
+                    <label for="dataInicio">Data Inicial</label>
+                    <input type="date" id="dataInicio">
+                </div>
+
+                <div class="form-group">
+                    <label for="dataFim">Data Final</label>
+                    <input type="date" id="dataFim">
+                </div>
+
+                <div class="form-group full-width">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                        <label for="seletorQuery" style="margin-bottom: 0;">Regra / Filtro de Extração</label>
+                        <a href="cadastrar-regra.html"
+                            style="font-size: 0.85rem; color: var(--primary); font-weight: 600; text-decoration: none; transition: color 0.2s;"
+                            onmouseover="this.style.color='var(--primary-hover)'"
+                            onmouseout="this.style.color='var(--primary)'">➕ Cadastrar Query</a>
+                    </div>
+                    <select id="seletorQuery">
+                        <option value="">Carregando regras disponíveis...</option>
+                    </select>
+                </div>
+
+                <div class="form-group full-width">
+                    <label for="caminhoDestino">Diretório de Destino (Ler a documentação antes)</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="caminhoDestino" placeholder="Ex: C:\XMLs\Exportacao" style="flex: 1;"value="\\10.10.40.55\Extrator XML">
+                        <button type="button" class="btn-connect"
+                            style="margin-top: 0; padding: 0 15px; background-color: var(--secondary);"
+                            onclick="abrirSeletorDePasta()">📁 Procurar...</button>
+                    </div>
+                </div>
+
+                <div class="form-group full-width">
+                    <button type="button" id="btnExtrair" class="btn-connect" style="background-color: var(--success);"
+                        onclick="iniciarExtracao()">Iniciar Extração</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="progress-container">
+            <h2> Acompanhamento em Tempo Real</h2>
+
+            <div class="status-container">
+                <div class="status-box">
+                    <div>Total de Vendas Elegíveis</div>
+                    <div id="txtTotal" class="value">0</div>
+                </div>
+                <div class="status-box">
+                    <div>Progresso Atual</div>
+                    <div id="txtPorcentagem" class="value success">0%</div>
+                </div>
+            </div>
+
+            <div class="progress-bar-bg">
+                <div id="barraProgresso" class="progress-bar-fill">0%</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalNavegacao" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">Seletor de Diretórios do Servidor</div>
+            <div id="caminhoModalAtual" class="modal-path-indicator">Raiz (Unidades de Disco)</div>
+            <div class="modal-body">
+                <ul id="listaPastas" class="pasta-list">
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-connect"
+                    style="margin-top:0; background-color: #e5e7eb; color: #374151;"
+                    onclick="fecharModal()">Cancelar</button>
+                <button type="button" class="btn-connect" style="margin-top:0; background-color: var(--success);"
+                    onclick="confirmarSelecaoPasta()">Selecionar Esta Pasta</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const urlBase = window.location.origin;
+        let caminhoAtualNavegacao = "";
+
+        // Carrega as queries assim que a página é montada
+        document.addEventListener("DOMContentLoaded", carregarQueriesDisponiveis);
+
+        // Inicializa o SignalR apontando dinamicamente para o servidor correto da rede
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl(`${urlBase}/extracaoHub`)
+            .withAutomaticReconnect()
+            .build();
+
+        connection.on("ReceberTotal", function (total) {
+            document.getElementById("txtTotal").innerText = total;
+        });
+
+        connection.on("ReceberProgresso", function (porcentagem) {
+            document.getElementById("txtPorcentagem").innerText = porcentagem + "%";
+            const barra = document.getElementById("barraProgresso");
+            barra.style.width = porcentagem + "%";
+            barra.innerText = porcentagem + "%";
+        });
+
+        connection.start()
+            .then(() => console.log("SignalR conectado dinamicamente via: " + urlBase))
+            .catch(err => console.error("Erro ao conectar ao SignalR: ", err));
+
+        // Função para buscar as queries cadastráveis no backend
+        async function carregarQueriesDisponiveis() {
+            const select = document.getElementById('seletorQuery');
+            try {
+                const response = await fetch(`${urlBase}/api/listar-queries`);
+                if (response.ok) {
+                    const data = await response.json();
+                    select.innerHTML = '';
+                    data.forEach(q => {
+                        const opt = document.createElement('option');
+                        opt.value = q.id;
+                        opt.textContent = q.nome;
+                        select.appendChild(opt);
+                    });
+                }
+            } catch (error) {
+                select.innerHTML = '<option value="">Erro ao carregar regras</option>';
+            }
+        }
+
+        async function carregarBancos() {
+            const btn = document.getElementById('btnConectar');
+            const selectBanco = document.getElementById('dbBanco');
+
+            const payload = {
+                server: document.getElementById('dbServer').value,
+                usuario: document.getElementById('dbUsuario').value,
+                senha: document.getElementById('dbSenha').value
+            };
+
+            if (!payload.server || !payload.usuario || !payload.senha) {
+                alert("Preencha os dados de conexão do SQL Server.");
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerText = "Buscando bancos...";
+
+            try {
+                const response = await fetch(`${urlBase}/api/listar-bancos`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    const bancos = await response.json();
+                    selectBanco.innerHTML = '<option value="">-- Selecione um Banco --</option>';
+
+                    bancos.forEach(banco => {
+                        const opt = document.createElement('option');
+                        opt.value = banco;
+                        opt.textContent = banco;
+                        selectBanco.appendChild(opt);
+                    });
+
+                    selectBanco.disabled = false;
+                    alert("Bancos de dados carregados com sucesso!");
+                } else {
+                    const erro = await response.json();
+                    alert("Erro ao conectar no SQL: " + (erro.detail || "Verifique os dados"));
+                }
+            } catch (error) {
+                alert("Erro de comunicação com o servidor: " + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Conectar e Listar Bancos";
+            }
+        }
+
+        // FUNÇÕES DO NAVEGADOR DE DIRETÓRIOS WEB
+        function abrirSeletorDePasta() {
+            document.getElementById('modalNavegacao').style.display = 'flex';
+            carregarDiretorio("");
+        }
+
+        function fecharModal() {
+            document.getElementById('modalNavegacao').style.display = 'none';
+        }
+
+        async function carregarDiretorio(caminho) {
+            const lista = document.getElementById('listaPastas');
+            const indicador = document.getElementById('caminhoModalAtual');
+            lista.innerHTML = '<li style="padding:15px; color:#666;">Carregando diretórios do servidor...</li>';
+
+            try {
+                const url = caminho ? `${urlBase}/api/navegar-pastas?caminho=${encodeURIComponent(caminho)}` : `${urlBase}/api/navegar-pastas`;
+                const response = await fetch(url);
+
+                if (!response.ok) throw new Error("Não foi possível acessar esta pasta.");
+
+                const data = await response.json();
+                lista.innerHTML = '';
+
+                caminhoAtualNavegacao = data.atual || "";
+                indicador.innerText = caminhoAtualNavegacao ? `Pasta Atual: ${caminhoAtualNavegacao}` : "Raiz do Servidor (Selecione uma Unidade)";
+
+                if (data.tipo === "pastas" && data.atual) {
+                    const liVoltar = document.createElement('li');
+                    liVoltar.className = 'pasta-item voltar-item';
+                    liVoltar.innerText = "⬅️ .. (Subir um nível)";
+
+                    let partes = data.atual.split(/[\\/]/).filter(p => p);
+                    let pai = "";
+
+                    if (partes.length > 1) {
+                        pai = data.atual.substring(0, data.atual.lastIndexOf(data.atual.includes("\\") ? "\\" : "/"));
+                        if (pai.endsWith(":")) pai += "\\";
+                    } else if (partes.length === 1 && data.atual.includes(":")) {
+                        pai = "";
+                    }
+
+                    liVoltar.onclick = () => carregarDiretorio(pai);
+                    lista.appendChild(liVoltar);
+                }
+
+                if (data.itens && data.itens.length > 0) {
+                    data.itens.forEach(item => {
+                        const li = document.createElement('li');
+                        li.className = 'pasta-item';
+
+                        const divisor = item.includes("\\") ? "\\" : "/";
+                        const nomeLimpo = item.endsWith(divisor) ? item : item.substring(item.lastIndexOf(divisor) + 1);
+
+                        li.innerText = `📁 ${nomeLimpo || item}`;
+                        li.onclick = () => carregarDiretorio(item);
+                        lista.appendChild(li);
+                    });
+                } else {
+                    const liVazia = document.createElement('li');
+                    liVazia.style.padding = '15px';
+                    liVazia.style.color = '#888';
+                    liVazia.innerText = 'Nenhuma subpasta encontrada aqui.';
+                    lista.appendChild(liVazia);
+                }
+            } catch (error) {
+                lista.innerHTML = `<li style="padding:15px; color:red;">Erro: ${error.message}</li>`;
+            }
+        }
+
+        function confirmarSelecaoPasta() {
+            if (!caminhoAtualNavegacao) {
+                alert("Navegue e selecione uma unidade ou pasta primeiro!");
+                return;
+            }
+            document.getElementById('caminhoDestino').value = caminhoAtualNavegacao;
+            fecharModal();
+        }
+
+
+        async function iniciarExtracao() {
+            const btn = document.getElementById('btnExtrair');
+
+            const payload = {
+                server: document.getElementById('dbServer').value,
+                usuario: document.getElementById('dbUsuario').value,
+                senha: document.getElementById('dbSenha').value,
+                banco: document.getElementById('dbBanco').value,
+                dataInicio: document.getElementById('dataInicio').value,
+                dataFim: document.getElementById('dataFim').value,
+                caminhoDestino: document.getElementById('caminhoDestino').value,
+                queryId: document.getElementById('seletorQuery').value
+            };
+
+            if (!payload.banco) { alert("Por favor, selecione um banco de dados primeiro!"); return; }
+            if (!payload.dataInicio || !payload.dataFim || !payload.caminhoDestino) {
+                alert("Preencha as datas e o diretório de destino.");
+                return;
+            }
+            if (!payload.queryId) { alert("Selecione uma regra de filtragem de extração."); return; }
+
+            document.getElementById("txtTotal").innerText = "0";
+            document.getElementById("txtPorcentagem").innerText = "0%";
+            document.getElementById("barraProgresso").style.width = "0%";
+            document.getElementById("barraProgresso").innerText = "0%";
+
+            btn.disabled = true;
+            btn.innerText = "Extraindo lotes...";
+
+            try {
+                const response = await fetch(`${urlBase}/api/extrair`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert("Processo concluído!\nMensagem: " + result.mensagem);
+                } else {
+                    alert("Falha no processo: " + (result.detail || "Erro interno"));
+                }
+            } catch (error) {
+                alert("Erro ao enviar comando para a API: " + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Iniciar Extração em Lotes";
+            }
+        }
+    </script>
+</body>
+
+</html>

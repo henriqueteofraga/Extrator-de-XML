@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentação - Monitor de Extração XML</title>
+    <style>
+        :root {
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --text-main: #333333;
+            --primary: #0078d4;
+            --primary-hover: #005a9e;
+            --border-color: #e0e0e0;
+            --success: #107c41;
+            --warning: #b77c00;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            line-height: 1.6;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 850px;
+        }
+
+        .header-area {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 30px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 15px;
+        }
+
+        h1 {
+            color: var(--primary);
+            margin: 0;
+            font-size: 1.8rem;
+        }
+
+        .btn-back {
+            text-decoration: none;
+            color: #555;
+            font-weight: 600;
+            font-size: 0.9rem;
+            padding: 8px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: #fff;
+            transition: background 0.2s;
+        }
+
+        .btn-back:hover {
+            background: #eee;
+        }
+
+        .doc-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            margin-bottom: 25px;
+        }
+
+        h2 {
+            color: var(--primary);
+            font-size: 1.4rem;
+            margin-top: 0;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        h3 {
+            color: #444;
+            font-size: 1.1rem;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        p {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #4a4a4a;
+        }
+
+        ol,
+        ul {
+            margin-top: 0;
+            margin-bottom: 20px;
+            padding-left: 20px;
+            color: #4a4a4a;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        code {
+            background-color: #f1f3f5;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.9rem;
+            color: #d63384;
+        }
+
+        .block-code {
+            background-color: #f8f9fa;
+            border-left: 4px solid var(--primary);
+            padding: 15px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            border-radius: 0 4px 4px 0;
+            color: #212529;
+            margin-bottom: 20px;
+        }
+
+        .alert-box {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+
+        .alert-box.info {
+            background-color: #eff6fc;
+            border-left: 4px solid var(--primary);
+            color: #1e293b;
+        }
+
+        .alert-box.warning {
+            background-color: #fffbeb;
+            border-left: 4px solid var(--warning);
+            color: #78350f;
+        }
+
+        .table-doc {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+
+        .table-doc th,
+        .table-doc td {
+            border: 1px solid var(--border-color);
+            padding: 10px 12px;
+            text-align: left;
+        }
+
+        .table-doc th {
+            background-color: #f8f9fa;
+            color: #333;
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="header-area">
+            <h1>📖 Documentação</h1>
+            <a href="index.html" class="btn-back">⬅️ Voltar ao Painel</a>
+        </div>
+
+        <div class="doc-card">
+            <h2>🚀 O que é este Extrator?</h2>
+            <p>Este sistema foi desenvolvido para ser uma ferramenta que permite extrair os XMLs dos cupons diretamente
+                do banco de dados, sem a necessidade de utilizar o Gestão, proporcionando mais agilidade ao processo.
+            </p>
+            <p>Diferentemente da ferramenta interna do Gestão, "Baixar XML", que realiza o download de um arquivo por
+                vez, este motor agrupa as vendas em <strong>lotes de 500 registros</strong>, descompacta os pacotes e
+                entrega os arquivos prontos no diretório escolhido.</p>
+        </div>
+
+        <div class="doc-card">
+            <h2>🧠 Como o sistema funciona?</h2>
+            <p>O sistema trabalha em um modelo de <strong>Rede Distribuída</strong> dividido em três partes:</p>
+            <ul>
+                <li><strong>Interface Web:</strong> É a página que você está visualizando. Ela pode ser aberta de
+                    qualquer computador ou celular conectado à rede interna da empresa.</li>
+                <li><strong>Banco de Configurações Central:</strong> Fica armazenado permanentemente no servidor da API.
+                    É onde ficam guardadas as regras fiscais estruturadas. Em casos de mais detalhes a respeito, podem
+                    me procurar.</li>
+                <li><strong>Servidor de banco de dados:</strong> São as máquinas que possuem os bancos de dados
+                    <code>Gestao</code> e <code>GestaoXML</code> (onde os XMLs estão guardados).
+                </li>
+            </ul>
+            <div class="alert-box info">
+                <strong>Informação Importante:</strong> Quando você inicia uma extração, a API busca a inteligência do
+                código SQL no Banco Central, conecta-se no servidor de banco de dados que você digitou, processa as
+                informações lá dentro e grava os arquivos na pasta selecionada.
+            </div>
+        </div>
+
+        <div class="doc-card">
+            <h2>🛠️ Como Utilizar o Extrator?</h2>
+            <p>Siga este passo a passo sequencial para realizar uma extração sem erros:</p>
+
+            <ol>
+                <li><strong>Identifique o Servidor de banco de Dados:</strong> No campo
+                    <code>Servidor (IP ou Nome)</code>, insira o computador da rede de onde deseja extrair os XMLs.
+                    Insira o usuário e senha do SQL Server daquela máquina e clique em <strong>"Conectar e Listar
+                        Bancos"</strong>.
+                </li>
+                <li><strong>Selecione o Banco de Dados:</strong> O sistema listará na lista suspensa todos os bancos
+                    de movimentação daquela máquina (ex: <code>GestaoXML_13986009000165</code>). Escolha o desejado.
+                </li>
+                <li><strong>Defina o Período:</strong> Escolha a <code>Data Inicial</code> e a <code>Data Final</code>
+                    do período que o cliente ou a contabilidade solicitou.</li>
+                <li><strong>Escolha a Regra Fiscal:</strong> Selecione o filtro de extração desejado (ex: <em>Vendas
+                        Cesta Básica</em>). O sistema filtrará os XMLs para trazer apenas os cupons que se enquadrem na
+                    regra criada.</li>
+                <li>
+                    <strong>Escolha a Pasta de Destino:</strong> Por padrão, este campo já vem preenchido com um
+                    <strong>diretório padrão de rede</strong> para centralizar e organizar as extrações automaticamente.
+                    Seja utilizando o caminho padrão ou digitando um novo, lembre-se de que o diretório
+                    <strong>deve obrigatoriamente ser um caminho de rede visível para o servidor</strong>
+                    (no formato UNC, ex: <code>\\IP_OU_NOME_DA_MAQUINA\PastaCompartilhada</code>) e a máquina onde a API
+                    está rodando
+                    precisa ter <strong>permissões totais de leitura e escrita</strong> liberadas nessa pasta.<br>
+                    <strong>Dica:</strong> Antes de iniciar a exportação, acesse a pasta padrão (ou a pasta que decidiu
+                    utilizar) e crie uma subpasta para a sua demanda. Isso evitará misturar XML's em caso de usos
+                    simultâneos
+                    <br>
+                    <strong>⚠️ Por que não posso digitar o caminho local da minha própria máquina (ex:
+                        C:\MinhaPasta)?</strong>
+                    Por questões estritas de segurança, os navegadores web (Chrome, Edge, etc.) são completamente
+                    bloqueados de acessar os arquivos locais do seu computador pessoal. Além disso, quem realiza a
+                    gravação física dos XMLs é o servidor da API. Se você digitar <code>C:\MinhasNotas</code>, o sistema
+                    vai tentar caçar essa pasta dentro do disco rígido do <strong>servidor</strong>, e não no seu, o que
+                    causará uma falha no processo. Por isso, para salvar na sua máquina, use sempre o caminho de rede
+                    compartilhado (<code>\\IP...</code>).
+                    Se preferir salvar direto em um disco do próprio servidor da API, você também pode clicar no botão
+                    📁 <strong>"Procurar..."</strong> para abrir o seletor visual.
+                </li>
+                <li><strong>Inicie o Processo:</strong> Clique no botão verde <strong>"Iniciar Extração em
+                        Lotes"</strong>.</li>
+            </ol>
+        </div>
+
+        <div class="doc-card">
+            <h2>📦 O que esperar dos resultados?</h2>
+            <h3>Acompanhamento Visual</h3>
+            <p>Assim que o processo inicia, o painel exibe duas informações em tempo real:</p>
+            <table class="table-doc">
+                <thead>
+                    <tr>
+                        <th>Campo</th>
+                        <th>O que significa</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Total de Vendas Elegíveis</strong></td>
+                        <td>A quantidade exata de cupons encontradas no banco que batem com o período e com a
+                            regra escolhida.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Progresso Atual</strong></td>
+                        <td>A porcentagem de lotes que já foram completamente processados, baixados e extraídos no
+                            disco.</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Arquivos Gerados</h3>
+            <p>Ao término do processo, os arquivos XML originais estarão extraídos e organizados de forma limpa, com os
+                nomes originais de emissão, diretamente dentro do diretório informado no campo de destino.</p>
+
+            <div class="alert-box warning">
+                <strong>Tratamento de Erros:</strong> Se alguma nota do lote estiver corrompida ou o disco ficar cheio,
+                o sistema pulará o registro problemático para não interromper a operação da rede e gravará o motivo
+                detalhado em um arquivo de log chamado <code>erro_extracao.log</code> diretamente <strong>dentro da
+                    mesma pasta que você definiu como diretório de destino</strong>.
+            </div>
+        </div>
+
+        <div class="doc-card">
+            <h2>➕ Como cadastrar novas Querys?</h2>
+            <p>Se você precisar filtrar os XMLs por uma nova categoria de impostos ou produtos (ex: <em>Vendas de
+                    Bebidas</em> ou <em>Produtos de Higiene</em>), você pode clicar no link <strong>"Cadastrar Query"</strong> na tela inicial.</p>
+            <p>Para criar uma regra válida, o técnico responsável precisa apenas estruturar um comando SQL que insira os
+                códigos dos produtos desejados dentro de uma tabela temporária chamada <code>#VendasElegiveis</code>,
+                exatamente como no exemplo abaixo:</p>
+
+            <div class="block-code">
+-- Todas as vendas
+IF OBJECT_ID(''tempdb..#VendasElegiveis'') IS NOT NULL DROP TABLE #VendasElegiveis;
+CREATE TABLE #VendasElegiveis (CodigoProduto BIGINT PRIMARY KEY);
+INSERT INTO #VendasElegiveis (CodigoProduto)
+select Codigo from Gestao.dbo.Vendas';</div>
+
+            <p>Ao gravar, a regra fica disponível imediatamente para todos os usuários do sistema na rede, sem
+                necessidade de atualizar ou reiniciar o programa.</p>
+        </div>
+    </div>
+
+</body>
+
+</html>
