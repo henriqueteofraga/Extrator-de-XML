@@ -179,8 +179,14 @@
                             <strong>💡 Instrução para o SQL:</strong> O código digitado abaixo deve conter unicamente a
                             criação e a inserção da tabela temporária <code>#VendasElegiveis</code>. O bloco final de
                             ligação com as tabelas de vendas e extração de XML é anexado de forma automática pela
-                            API.</br> Todo começo de Query deve conter o seguinte codigo:<br><code>IF OBJECT_ID('tempdb..#VendasElegiveis') IS NOT NULL <br>DROP TABLE #VendasElegiveis;<br>
+                            API.</br> Todo começo de Query deve conter o seguinte codigo:<br><br><code>IF OBJECT_ID('tempdb..#VendasElegiveis') IS NOT NULL <br>DROP TABLE #VendasElegiveis;<br>
 CREATE TABLE #VendasElegiveis (CodigoProduto BIGINT PRIMARY KEY);</code>
+                        </div>
+                        <div class="tip-box">
+                            <strong>Boa Prática:</strong> Crie, teste e valide a consulta no SQL Management Studio
+                            antes de utilizá-la no sistema. Não há suporte a IntelliSense nem validação da
+                            sintaxe SQL durante a configuração, portanto certifique-se de que a consulta esteja
+                            retornando corretamente os dados desejados antes de publicá-la em produção.
                         </div>
                     </div>
 

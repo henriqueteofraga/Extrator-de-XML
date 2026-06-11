@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Regras Fiscais</title>
+    <style>
+        :root {
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --text-main: #333333;
+            --primary: #0078d4;
+            --primary-hover: #005a9e;
+            --border-color: #e0e0e0;
+            --danger: #a80000;
+            --danger-hover: #740000;
+            --success: #107c41;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 950px;
+        }
+
+        .header-area {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 25px;
+        }
+
+        h1 { color: var(--primary); margin: 0; font-size: 1.6rem; }
+
+        .btn-back {
+            text-decoration: none; color: #555; font-weight: 600; font-size: 0.9rem;
+            padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 4px;
+            background: #fff; transition: background 0.2s;
+        }
+        .btn-back:hover { background: #eee; }
+
+        .admin-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 20px;
+        }
+
+        .sidebar-card, .content-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            box-sizing: border-box;
+        }
+
+        .sidebar-card h3 { margin-top: 0; margin-bottom: 15px; color: #444; font-size: 1.1rem; }
+
+        .regras-list { list-style: none; padding: 0; margin: 0; }
+        
+        .regra-item {
+            padding: 12px; border-bottom: 1px solid #f0f0f0; cursor: pointer;
+            border-radius: 4px; font-size: 0.95rem; transition: all 0.2s;
+            word-break: break-all;
+        }
+        .regra-item:hover { background-color: #f0f4f8; color: var(--primary); }
+        .regra-item.active { background-color: #e1dfdd; font-weight: bold; color: var(--primary); }
+
+        .view-mode, .edit-mode { display: none; }
+        .active-mode { display: block; }
+
+        .query-display {
+            background-color: #fafafa; border: 1px solid var(--border-color);
+            border-radius: 4px; padding: 15px; font-family: 'Consolas', monospace;
+            font-size: 0.9rem; white-space: pre-wrap; word-wrap: break-word;
+            color: #232733; max-height: 450px; overflow-y: auto; margin-bottom: 15px;
+        }
+
+        .form-group { display: flex; flex-direction: column; margin-bottom: 15px; }
+        .form-group label { font-size: 0.9rem; font-weight: 600; margin-bottom: 5px; color: #555; }
+        .form-group input, .form-group textarea {
+            padding: 10px; border: 1px solid var(--border-color); border-radius: 4px;
+            font-size: 0.95rem; outline: none; box-sizing: border-box;
+        }
+        .form-group textarea {
+            font-family: 'Consolas', monospace; min-height: 350px; resize: vertical;
+            background-color: #fafafa;
+        }
+
+        .actions-area { display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px; }
+        
+        .btn-action {
+            padding: 10px 16px; border: none; border-radius: 4px; font-weight: bold;
+            font-size: 0.9rem; cursor: pointer; transition: background 0.2s;
+        }
+        .btn-edit { background-color: var(--primary); color: white; }
+        .btn-edit:hover { background-color: var(--primary-hover); }
+        .btn-delete { background-color: var(--danger); color: white; }
+        .btn-delete:hover { background-color: var(--danger-hover); }
+        .btn-save { background-color: var(--success); color: white; }
+        .btn-cancel { background-color: #e5e7eb; color: #374151; }
+
+        .empty-state { text-align: center; color: #777; padding: 40px 20px; font-style: italic; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header-area">
+            <h1>📋 Gerenciador Central de Regras</h1>
+            <a href="index.html" class="btn-back">⬅️ Voltar ao Painel</a>
+        </div>
+
+        <div class="admin-layout">
+            <div class="sidebar-card">
+                <h3>Regras Cadastradas</h3>
+                <ul id="listaRegras" class="regras-list">
+                    </ul>
+            </div>
+
+            <div class="content-card" id="painelConteudo">
+                <div class="empty-state">Selecione uma regra na barra lateral para visualizar, editar ou excluir.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const urlBase = window.location.origin;
+        let regrasCache = [];
+        let regraSelecionada = null;
+
+        document.addEventListener("DOMContentLoaded", carregarTodasRegras);
+
+        async function carregarTodasRegras() {
+            const lista = document.getElementById('listaRegras');
+            lista.innerHTML = '<li style="color:#666; padding:10px;">Buscando banco...</li>';
+            
+            try {
+                const response = await fetch(`${urlBase}/api/regras-completo`);
+                if (response.ok) {
+                    regrasCache = await response.json();
+                    renderizarLista();
+                } else {
+                    lista.innerHTML = '<li style="color:red; padding:10px;">Erro ao ler regras.</li>';
+                }
+            } catch (error) {
+                lista.innerHTML = `<li style="color:red; padding:10px;">Falha: ${error.message}</li>`;
+            }
+        }
+
+        function renderizarLista() {
+            const lista = document.getElementById('listaRegras');
+            lista.innerHTML = '';
+            
+            if (regrasCache.length === 0) {
+                lista.innerHTML = '<li style="color:#888; padding:10px;">Nenhuma regra salva.</li>';
+                return;
+            }
+
+            regrasCache.forEach(regra => {
+                const li = document.createElement('li');
+                li.className = 'regra-item';
+                if(regraSelecionada && regraSelecionada.id === regra.id) li.className += ' active';
+                li.textContent = regra.nome;
+                li.onclick = () => selecionarRegra(regra);
+                lista.appendChild(li);
+            });
+        }
+
+        function selecionarRegra(regra) {
+            regraSelecionada = regra;
+            renderizarLista();
+            exibirModoVisualizacao();
+        }
+
+        // VISUALIZADOR (Trata as quebras de linha nativamente via CSS white-space)
+        function exibirModoVisualizacao() {
+            const painel = document.getElementById('painelConteudo');
+            painel.innerHTML = `
+                <div class="view-mode active-mode">
+                    <h2 style="margin-top:0; color:var(--primary);">${regraSelecionada.nome}</h2>
+                    <p style="font-size:0.85rem; color:#666;"><strong>ID Único:</strong> <code>${regraSelecionada.id}</code></p>
+                    <label style="font-size: 0.9rem; font-weight:600; color:#555;">Estrutura da Query SQL:</label>
+                    <div class="query-display">${escapeHtml(regraSelecionada.querySql)}</div>
+                    <div class="actions-area">
+                        <button class="btn-action btn-delete" onclick="excluirRegra()">🗑️ Excluir Regra</button>
+                        <button class="btn-action btn-edit" onclick="exhibirModoEdicao()">✏️ Editar Regra</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // EDITOR
+        function exhibirModoEdicao() {
+            const painel = document.getElementById('painelConteudo');
+            painel.innerHTML = `
+                <div class="edit-mode active-mode">
+                    <h2 style="margin-top:0; color:var(--primary);">Editando Regra</h2>
+                    <div class="form-group">
+                        <label>Identificador Único (ID - Não Alterável)</label>
+                        <input type="text" value="${regraSelecionada.id}" disabled style="background:#eee; color:#666;">
+                    </div>
+                    <div class="form-group">
+                        <label for="editNome">Nome da Regra</label>
+                        <input type="text" id="editNome" value="${regraSelecionada.nome}">
+                    </div>
+                    <div class="form-group">
+                        <label for="editSql">Código Query SQL</label>
+                        <textarea id="editSql">${regraSelecionada.querySql}</textarea>
+                    </div>
+                    <div class="actions-area">
+                        <button class="btn-action btn-cancel" onclick="exibirModoVisualizacao()">Cancelar</button>
+                        <button class="btn-action btn-save" onclick="salvarEdicao()">💾 Gravar Alterações</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function salvarEdicao() {
+            const nomeInput = document.getElementById('editNome').value;
+            const sqlInput = document.getElementById('editSql').value;
+
+            if(!nomeInput.trim() || !sqlInput.trim()) {
+                alert("Preencha todos os campos antes de salvar.");
+                return;
+            }
+
+            const payload = { id: regraSelecionada.id, nome: nomeInput, querySql: sqlInput };
+
+            try {
+                const response = await fetch(`${urlBase}/api/atualizar-regra`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    alert("Regra atualizada com sucesso no banco de dados central!");
+                    regraSelecionada.nome = nomeInput;
+                    regraSelecionada.querySql = sqlInput;
+                    await carregarTodasRegras();
+                    exibirModoVisualizacao();
+                } else {
+                    alert("Falha ao salvar as modificações.");
+                }
+            } catch (error) {
+                alert("Erro de comunicação: " + error.message);
+            }
+        }
+
+        // EXCLUSOR (Com Alerta de Risco Explícito)
+        async function excluirRegra() {
+            const mensagemAviso = `🚨 ATENÇÃO! ALERTA DE SEGURANÇA 🚨\n\nVocê está prestes a EXCLUIR PERMANENTEMENTE a regra "${regraSelecionada.nome}" do banco de dados central.\n\nIsso fará com que NENHUMA máquina ou usuário na rede interna consiga utilizar este filtro para extração de XMLs.\n\nEsta operação NÃO PODE SER DESFEITA.\n\nTem certeza absoluta de que deseja prosseguir?`;
+            
+            if (!confirm(mensagemAviso)) {
+                return; // Operação cancelada pelo usuário
+            }
+
+            try {
+                const response = await fetch(`${urlBase}/api/excluir-regra/${regraSelecionada.id}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    alert("Regra deletada com sucesso do sistema central.");
+                    regraSelecionada = null;
+                    document.getElementById('painelConteudo').innerHTML = `<div class="empty-state">Selecione uma regra na barra lateral para visualizar, editar ou excluir.</div>`;
+                    await carregarTodasRegras();
+                } else {
+                    alert("Erro ao processar exclusão no banco de dados.");
+                }
+            } catch (error) {
+                alert("Erro de comunicação: " + error.message);
+            }
+        }
+
+        function escapeHtml(text) {
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+    </script>
+</body>
+</html>

@@ -153,6 +153,97 @@ app.MapPost("/api/salvar-regra", async ([FromBody] CadastrarRegraRequest request
     }
 });
 
+// ENDPOINT: Buscar todas as regras com o código SQL completo (Para o Visualizador/Editor)
+app.MapGet("/api/regras-completo", async () =>
+{
+    var regras = new List<object>();
+    try
+    {
+        using (var connection = new SqlConnection(ConnectionStringConfigCentral))
+        {
+            await connection.OpenAsync();
+            var query = "SELECT Id, Nome, QuerySql FROM RegrasExtracao ORDER BY Nome;";
+            
+            using (var command = new SqlCommand(query, connection))
+            using (var reader = await command.ExecuteReaderAsync())
+            {
+                while (await reader.ReadAsync())
+                {
+                    regras.Add(new { 
+                        id = reader.GetString(0), 
+                        nome = reader.GetString(1), 
+                        querySql = reader.GetString(2) 
+                    });
+                }
+            }
+        }
+        return Results.Ok(regras);
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem($"Erro ao buscar regras completas: {ex.Message}");
+    }
+});
+
+// ENDPOINT: Atualizar uma regra existente (Editor)
+app.MapPut("/api/atualizar-regra", async ([FromBody] AtualizarRegraRequest request) =>
+{
+    if (string.IsNullOrWhiteSpace(request.Id) || string.IsNullOrWhiteSpace(request.Nome) || string.IsNullOrWhiteSpace(request.QuerySql))
+    {
+        return Results.BadRequest("Todos os campos são obrigatórios para atualização.");
+    }
+
+    try
+    {
+        using (var connection = new SqlConnection(ConnectionStringConfigCentral))
+        {
+            await connection.OpenAsync();
+            var query = "UPDATE RegrasExtracao SET Nome = @nome, QuerySql = @querySql WHERE Id = @id;";
+            
+            using (var command = new SqlCommand(query, connection))
+            {
+                command.Parameters.AddWithValue("@id", request.Id);
+                command.Parameters.AddWithValue("@nome", request.Nome.Trim());
+                command.Parameters.AddWithValue("@querySql", request.QuerySql.Trim());
+                
+                int linhasAfetadas = await command.ExecuteNonQueryAsync();
+                if (linhasAfetadas == 0) return Results.NotFound("Regra não encontrada para atualização.");
+            }
+        }
+        return Results.Ok(new { mensagem = "Regra atualizada com sucesso!" });
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem($"Erro ao atualizar regra no banco: {ex.Message}");
+    }
+});
+
+// ENDPOINT: Excluir uma regra permanentemente (Exclusor)
+app.MapDelete("/api/excluir-regra/{id}", async (string id) =>
+{
+    if (string.IsNullOrWhiteSpace(id)) return Results.BadRequest("ID inválido.");
+
+    try
+    {
+        using (var connection = new SqlConnection(ConnectionStringConfigCentral))
+        {
+            await connection.OpenAsync();
+            var query = "DELETE FROM RegrasExtracao WHERE Id = @id;";
+            
+            using (var command = new SqlCommand(query, connection))
+            {
+                command.Parameters.AddWithValue("@id", id);
+                int linhasAfetadas = await command.ExecuteNonQueryAsync();
+                if (linhasAfetadas == 0) return Results.NotFound("Regra não encontrada para exclusão.");
+            }
+        }
+        return Results.Ok(new { mensagem = "Regra excluída com sucesso permanentemente!" });
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem($"Erro ao excluir regra no banco: {ex.Message}");
+    }
+});
 // ENDPOINT 4: Extração Distribuída Otimizada
 app.MapPost("/api/extrair", async ([FromBody] ExtrairRequestOtimizado request, IHubContext<ExtracaoHubOtimizado> hubContext) =>
 {
@@ -303,3 +394,4 @@ public class ExtracaoHubOtimizado : Hub { }
 public record ConexaoSqlRequest(string Server, string Usuario, string Senha);
 public record ExtrairRequestOtimizado(string Server, string Usuario, string Senha, string Banco, string DataInicio, string DataFim, string CaminhoDestino, string QueryId);
 public record CadastrarRegraRequest(string Id, string Nome, string QuerySql);
+public record AtualizarRegraRequest(string Id, string Nome, string QuerySql);

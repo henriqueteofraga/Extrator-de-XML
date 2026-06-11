@@ -274,17 +274,11 @@
     <div class="container">
         <div
             style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid var(--border-color); padding-bottom: 15px;">
-            <h1 style="margin: 0; text-align: left;"> 📦 Extrator de XML</h1>
+            <h1 style="margin: 0; text-align: left; color: var(--primary);"> 📦 Extrator de XML</h1>
             <a href="documentacao.html"
                 style="text-decoration: none; color: #555; font-weight: 600; font-size: 0.9rem; padding: 8px 16px; border: 1px solid var(--border-color); border-radius: 4px; background: #fff; transition: all 0.2s;"
-                onmouseover="this.style.background='#eee'" onmouseout="this.style.background='#fff'">📖 Ver Documentação
-                / Ajuda</a>
+                onmouseover="this.style.background='#eee'" onmouseout="this.style.background='#fff'">📖 Ver Documentação / Ajuda</a>
         </div>
-        </h1>
-        <a href="cadastrar-regra.html"
-            style="font-size: 0.85rem; color: var(--primary); font-weight: 600; text-decoration: none; transition: color 0.2s;"
-            onmouseover="this.style.color='var(--primary-hover)'" onmouseout="this.style.color='var(--primary)'">➕
-            Cadastrar Query</a>
 
         <div class="extractor-card">
             <h2> Conexão ao Servidor SQL Server</h2>
@@ -303,15 +297,14 @@
                 </div>
 
                 <div class="form-group full-width">
-                    <button type="button" id="btnConectar" class="btn-connect" onclick="carregarBancos()">Conectar e
-                        Listar Bancos</button>
+                    <button type="button" id="btnConectar" class="btn-connect" onclick="carregarBancos()">Conectar e Listar Bancos</button>
                 </div>
             </div>
         </div>
 
         <div class="extractor-card">
             <h2> Parâmetros de Extração</h2>
-            <div class="form-group">
+            <div class="form-group" style="margin-bottom: 15px;">
                 <label for="dbBanco">Banco de Dados</label>
                 <select id="dbBanco" disabled>
                     <option value="">Selecione</option>
@@ -329,13 +322,18 @@
                 </div>
 
                 <div class="form-group full-width">
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
                         <label for="seletorQuery" style="margin-bottom: 0;">Regra / Filtro de Extração</label>
-                        <a href="cadastrar-regra.html"
-                            style="font-size: 0.85rem; color: var(--primary); font-weight: 600; text-decoration: none; transition: color 0.2s;"
-                            onmouseover="this.style.color='var(--primary-hover)'"
-                            onmouseout="this.style.color='var(--primary)'">➕ Cadastrar Query</a>
+                        <div style="display: flex; gap: 15px;">
+                            <a href="cadastrar-regra.html"
+                                style="font-size: 0.85rem; color: var(--primary); font-weight: 600; text-decoration: none; transition: color 0.2s;"
+                                onmouseover="this.style.color='var(--primary-hover)'"
+                                onmouseout="this.style.color='var(--primary)'">➕ Cadastrar Query</a>
+                            <a href="gerenciar-regras.html"
+                                style="font-size: 0.85rem; color: var(--secondary); font-weight: 600; text-decoration: none; transition: color 0.2s;"
+                                onmouseover="this.style.color='var(--secondary-hover)'"
+                                onmouseout="this.style.color='var(--secondary)'">📋 Gerenciar Querys</a>
+                        </div>
                     </div>
                     <select id="seletorQuery">
                         <option value="">Carregando regras disponíveis...</option>
@@ -345,7 +343,7 @@
                 <div class="form-group full-width">
                     <label for="caminhoDestino">Diretório de Destino (Ler a documentação antes)</label>
                     <div style="display: flex; gap: 10px;">
-                        <input type="text" id="caminhoDestino" placeholder="Ex: C:\XMLs\Exportacao" style="flex: 1;"value="\\10.10.40.55\Extrator XML">
+                        <input type="text" id="caminhoDestino" placeholder="Ex: C:\XMLs\Exportacao" style="flex: 1;" value="\\10.10.40.55\Extrator XML">
                         <button type="button" class="btn-connect"
                             style="margin-top: 0; padding: 0 15px; background-color: var(--secondary);"
                             onclick="abrirSeletorDePasta()">📁 Procurar...</button>
@@ -401,8 +399,11 @@
         const urlBase = window.location.origin;
         let caminhoAtualNavegacao = "";
 
-        // Carrega as queries assim que a página é montada
-        document.addEventListener("DOMContentLoaded", carregarQueriesDisponiveis);
+        // Inicialização: Carrega queries e restaura dados salvos da conexão
+        document.addEventListener("DOMContentLoaded", () => {
+            carregarQueriesDisponiveis();
+            restaurarCacheConexao();
+        });
 
         // Inicializa o SignalR apontando dinamicamente para o servidor correto da rede
         const connection = new signalR.HubConnectionBuilder()
@@ -425,6 +426,21 @@
             .then(() => console.log("SignalR conectado dinamicamente via: " + urlBase))
             .catch(err => console.error("Erro ao conectar ao SignalR: ", err));
 
+        // GERENCIAMENTO DE CACHE DE CONEXÃO (localStorage)
+        function salvarCacheConexao() {
+            localStorage.setItem("extrator_server", document.getElementById("dbServer").value);
+            localStorage.setItem("extrator_usuario", document.getElementById("dbUsuario").value);
+            localStorage.setItem("extrator_senha", document.getElementById("dbSenha").value);
+        }
+
+        function restaurarCacheConexao() {
+            if (localStorage.getItem("extrator_server")) {
+                document.getElementById("dbServer").value = localStorage.getItem("extrator_server");
+                document.getElementById("dbUsuario").value = localStorage.getItem("extrator_usuario");
+                document.getElementById("dbSenha").value = localStorage.getItem("extrator_senha");
+            }
+        }
+
         // Função para buscar as queries cadastráveis no backend
         async function carregarQueriesDisponiveis() {
             const select = document.getElementById('seletorQuery');
@@ -432,7 +448,7 @@
                 const response = await fetch(`${urlBase}/api/listar-queries`);
                 if (response.ok) {
                     const data = await response.json();
-                    select.innerHTML = '';
+                    select.innerHTML = '<option value="">-- Selecione uma Regra --</option>';
                     data.forEach(q => {
                         const opt = document.createElement('option');
                         opt.value = q.id;
@@ -448,6 +464,9 @@
         async function carregarBancos() {
             const btn = document.getElementById('btnConectar');
             const selectBanco = document.getElementById('dbBanco');
+
+            // Salva dados de credenciais no cache local antes de efetuar a requisição
+            salvarCacheConexao();
 
             const payload = {
                 server: document.getElementById('dbServer').value,
@@ -574,7 +593,6 @@
             fecharModal();
         }
 
-
         async function iniciarExtracao() {
             const btn = document.getElementById('btnExtrair');
 
@@ -622,7 +640,7 @@
                 alert("Erro ao enviar comando para a API: " + error.message);
             } finally {
                 btn.disabled = false;
-                btn.innerText = "Iniciar Extração em Lotes";
+                btn.innerText = "Iniciar Extração";
             }
         }
     </script>

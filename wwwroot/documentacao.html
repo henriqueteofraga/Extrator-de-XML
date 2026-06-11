@@ -75,6 +75,16 @@
             margin-bottom: 25px;
         }
 
+        .tip-box {
+            background-color: #eff6fc;
+            border-left: 4px solid var(--primary);
+            padding: 12px;
+            border-radius: 0 4px 4px 0;
+            font-size: 0.85rem;
+            color: #242424;
+            line-height: 1.4;
+        }
+
         h2 {
             color: var(--primary);
             font-size: 1.4rem;
@@ -189,7 +199,8 @@
             <p>Diferentemente da ferramenta interna do Gestão, "Baixar XML", que realiza o download de um arquivo por
                 vez, este motor agrupa as vendas em <strong>lotes de 500 registros</strong>, descompacta os pacotes e
                 entrega os arquivos prontos no diretório escolhido.</p>
-            <p><strong>OBS:</strong> Por enquanto, o sistema não está configurado os bancos de dados dos clientes SkyOne, com exceção do Curitibanos</p>
+            <p><strong>OBS:</strong> Por enquanto, o sistema não está configurado os bancos de dados dos clientes
+                SkyOne, com exceção do Curitibanos</p>
         </div>
 
         <div class="doc-card">
@@ -199,7 +210,8 @@
                 <li><strong>Interface Web:</strong> É a página que você está visualizando. Ela pode ser aberta de
                     qualquer computador ou celular conectado à rede interna da empresa.</li>
                 <li><strong>Banco de Configurações Central:</strong> Fica armazenado permanentemente no servidor da API.
-                    É onde ficam guardadas as regras fiscais estruturadas. Em casos de mais detalhes a respeito, pelo Henrique Fraga.</li>
+                    É onde ficam guardadas as regras fiscais estruturadas. Em casos de mais detalhes a respeito, pelo
+                    Henrique Fraga.</li>
                 <li><strong>Servidor de banco de dados:</strong> São as máquinas que possuem os bancos de dados
                     <code>Gestao</code> e <code>GestaoXML</code> (onde os XMLs estão guardados).
                 </li>
@@ -297,21 +309,30 @@
         <div class="doc-card">
             <h2>➕ Como cadastrar novas Querys?</h2>
             <p>Se você precisar filtrar os XMLs por uma nova categoria de impostos ou produtos (ex: <em>Vendas de
-                    Bebidas</em> ou <em>Produtos de Higiene</em>), você pode clicar no link <strong>"Cadastrar Query"</strong> na tela inicial.</p>
+                    Bebidas</em> ou <em>Produtos de Higiene</em>), você pode clicar no link <strong>"Cadastrar
+                    Query"</strong> na tela inicial.</p>
             <p>Para criar uma regra válida, o técnico responsável precisa apenas estruturar um comando SQL que insira os
                 códigos dos produtos desejados dentro de uma tabela temporária chamada <code>#VendasElegiveis</code>,
                 exatamente como no exemplo abaixo:</p>
-
             <div class="block-code">
--- Todas as vendas
-IF OBJECT_ID(''tempdb..#VendasElegiveis'') IS NOT NULL DROP TABLE #VendasElegiveis;
-CREATE TABLE #VendasElegiveis (CodigoProduto BIGINT PRIMARY KEY);
-INSERT INTO #VendasElegiveis (CodigoProduto)
-select Codigo from Gestao.dbo.Vendas';</div>
+ IF OBJECT_ID('tempdb..#VendasElegiveis') IS NOT NULL
+ DROP TABLE #VendasElegiveis;
+ CREATE TABLE #VendasElegiveis (CodigoProduto BIGINT PRIMARY KEY);
+            </div>
 
             <p>Ao gravar, a regra fica disponível imediatamente para todos os usuários do sistema na rede, sem
                 necessidade de atualizar ou reiniciar o programa.</p>
+            <div class="form-group full-width">
+                <div class="tip-box">
+                    <strong>Boa Prática:</strong> Crie, teste e valide a consulta no SQL Management Studio
+                    antes de utilizá-la no sistema. Não há suporte a IntelliSense nem validação da
+                    sintaxe SQL durante a configuração, portanto certifique-se de que a consulta esteja
+                    retornando corretamente os dados desejados antes de publicá-la em produção.
+                </div>
+            </div>
+
         </div>
+
     </div>
 
 </body>
