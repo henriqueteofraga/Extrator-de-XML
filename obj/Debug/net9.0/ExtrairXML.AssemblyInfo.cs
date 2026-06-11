@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ExtrairXML")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9b43513618dd9e19c6458b4eb5c6c2e8099186d0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f4f52500134293c5772d45cf6738fbb466d1c3ad")]
 [assembly: System.Reflection.AssemblyProductAttribute("ExtrairXML")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ExtrairXML")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
